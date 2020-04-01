@@ -1,4 +1,4 @@
-
+// A simple hello world server
 const std = @import("std");
 const net = std.net;
 const fs = std.fs;
@@ -19,7 +19,16 @@ pub fn main() anyerror!void {
     while (true) {
         const conn = try server.accept();
         std.debug.warn("connection from {}\n", .{conn.address});
-        _ = try conn.file.write("hello world!\n");
+        _ = try conn.file.write(
+            \\HTTP/1.1 200 OK
+            \\Content-Length: 15
+            \\Content-Type: text/plain; charset=UTF-8
+            \\Server: Example
+            \\Date: Wed, 17 Apr 2013 12:00:00 GMT
+            \\
+            \\Hello, World!
+            \\
+        );
         conn.file.close();
     }
 }
