@@ -1,34 +1,113 @@
-// A simple hello world server
+// -------------------------------------------------------------------------- //
+// Copyright (c) 2019-2020, Jairus Martin.                                    //
+// Distributed under the terms of the MIT License.                            //
+// The full license is in the file LICENSE, distributed with this software.   //
+// -------------------------------------------------------------------------- //
 const std = @import("std");
-const net = std.net;
-const fs = std.fs;
-const os = std.os;
+const web = @import("zhp").web;
 
 pub const io_mode = .evented;
 
-pub fn main() anyerror!void {
-    const req_listen_addr = try net.Address.parseIp4("0.0.0.0", 5000);
+const MainHandler = struct {
+    handler: web.RequestHandler,
 
-    var server = net.StreamServer.init(.{});
-    defer server.deinit();
-
-    try server.listen(req_listen_addr);
-
-    std.debug.warn("listening at {}\n", .{server.listen_address});
-
-    while (true) {
-        const conn = try server.accept();
-        std.debug.warn("connection from {}\n", .{conn.address});
-        _ = try conn.file.write(
-            \\HTTP/1.1 200 OK
-            \\Content-Length: 15
-            \\Content-Type: text/plain; charset=UTF-8
-            \\Server: Example
-            \\Date: Wed, 17 Apr 2013 12:00:00 GMT
-            \\
-            \\Hello, World!
-            \\
-        );
-        conn.file.close();
+    pub fn get(self: *MainHandler, request: *web.Request,
+               response: *web.Response) !void {
+        try response.headers.append("Content-Type", "text/plain");
+        try response.stream.writeAll("Hello, World!");
     }
+
+};
+
+const StreamHandler = struct {
+    handler: web.RequestHandler,
+
+    // Dump a random stream of crap
+    pub fn get(self: *StreamHandler, request: *web.Request,
+               response: *web.Response) !void {
+        try response.headers.append("Content-Type", "application/octet-stream");
+        try response.headers.append("Content-Disposition",
+            "attachment; filename=\"random.bin\"");
+        //try response.headers.put("Content-Length", "4096000");
+
+        // TODO: Support streamign somehow
+        //response.streaming = true;
+        var r = std.rand.DefaultPrng.init(765432);
+        var buf: [4096]u8 = undefined;
+        r.random.bytes(buf[0..]);
+        var i: usize = 1000;
+        while (i >= 0) : (i -= 1) {
+            try response.stream.writeAll(buf[0..]);
+        }
+        std.debug.warn("Done!\n");
+    }
+
+};
+
+const JsonHandler = struct {
+    handler: web.RequestHandler,
+
+    pub fn get(self: *JsonHandler, request: *web.Request,
+               response: *web.Response) !void {
+        try response.headers.append("Content-Type", "application/json");
+        // TODO: dump object to json?
+        try response.stream.writeAll("{\"message\": \"Hello, World!\"}");
+    }
+
+};
+
+const ErrorTestHandler = struct {
+    handler: web.RequestHandler,
+
+    pub fn get(self: *ErrorTestHandler, request: *web.Request,
+               response: *web.Response) !void {
+        try response.stream.writeAll("Do some work");
+        return error.Ooops;
+    }
+
+};
+
+
+
+const FormHandler = struct {
+    handler: web.RequestHandler,
+
+    pub fn get(self: *FormHandler, request: *web.Request,
+               response: *web.Response) !void {
+        try response.stream.writeAll(
+            \\<form action="/form/" method="post" enctype="multipart/form-data">
+            \\<input type="text" name="description" value="some text">
+            \\<input type="file" name="myFile">
+            \\<button type="submit">Submit</button>
+            \\</form>
+        );
+    }
+
+    pub fn post(self: *FormHandler, request: *web.Request,
+               response: *web.Response) !void {
+        try response.stream.writeAll(
+            \\<h1>Thanks!</h1>
+        );
+    }
+};
+
+
+pub fn main() anyerror!void {
+
+    const routes = &[_]web.Route{
+        web.Route.create("home", "/", MainHandler),
+        web.Route.create("json", "/json/", JsonHandler),
+        web.Route.create("stream", "/stream/", StreamHandler),
+        web.Route.create("error", "/500/", ErrorTestHandler),
+        web.Route.create("form", "/form/", FormHandler),
+        web.Route.static("static", "/static/"),
+    };
+
+    var app = web.Application.init(.{
+        .routes=routes[0..],
+        .debug=true,
+    });
+    defer app.deinit();
+    try app.listen("127.0.0.1", 9000);
+    try app.start();
 }
