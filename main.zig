@@ -8,13 +8,15 @@ const web = @import("zhp").web;
 
 pub const io_mode = .evented;
 
+
 const MainHandler = struct {
     handler: web.RequestHandler,
 
+    const template = @embedFile("templates/home.html");
+
     pub fn get(self: *MainHandler, request: *web.Request,
                response: *web.Response) !void {
-        try response.headers.append("Content-Type", "text/plain");
-        try response.stream.writeAll("Hello, World!");
+        try response.stream.writeAll(template);
     }
 
 };
