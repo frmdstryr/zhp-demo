@@ -4,7 +4,8 @@
 // The full license is in the file LICENSE, distributed with this software.   //
 // -------------------------------------------------------------------------- //
 const std = @import("std");
-const web = @import("zhp").web;
+const zhp = @import("zhp");
+const web = zhp.web;
 
 pub const io_mode = .evented;
 
@@ -109,6 +110,12 @@ pub fn main() anyerror!void {
         .routes=routes[0..],
         .debug=true,
     });
+
+    // Logger
+    var logger = zhp.middleware.LoggingMiddleware{};
+    try app.middleware.append(&logger.middleware);
+
+
     defer app.deinit();
     try app.listen("0.0.0.0", 5000);
     try app.start();
