@@ -18,6 +18,8 @@ pub fn run(allocator: *std.mem.Allocator, args: anytype) !void {
         cmd[i] = arg;
     }
     var process = try std.ChildProcess.init(cmd[0..], allocator);
+    defer process.deinit();
     try process.spawn();
     _ = try process.wait();
+
 }
