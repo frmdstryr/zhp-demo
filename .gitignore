@@ -1,3 +1,6 @@
 zig-cache/
 zig-packages/
 
+*.kate-swp
+*.kdev4
+*.zip
