@@ -170,7 +170,7 @@ pub fn main() !void {
 
     // Logger
     var logger = zhp.middleware.LoggingMiddleware{};
-    //try app.middleware.append(&logger.middleware);
+    try app.middleware.append(&logger.middleware);
 
     defer app.deinit();
     try app.listen("0.0.0.0", 5000);
