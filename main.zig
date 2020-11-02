@@ -213,6 +213,6 @@ pub fn main() !void {
     try app.middleware.append(&logger.middleware);
 
     defer app.deinit();
-    try app.listen("127.0.0.1", 9000);
+    try app.listen("0.0.0.0", 5000);
     try app.start();
 }
