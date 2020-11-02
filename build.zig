@@ -1,5 +1,5 @@
 // This tells the buildpack which version to install
-// zig-release: zig-linux-x86_64-0.6.0+9ca981948.tar.xz
+// zig-release: zig-linux-x86_64-0.6.0+36f178876.tar.xz
 //
 const std = @import("std");
 const Builder = std.build.Builder;
