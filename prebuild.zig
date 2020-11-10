@@ -7,7 +7,7 @@ pub fn main() !void {
     const a = &gpa.allocator;
 
     try run(a, .{"wget", "https://github.com/frmdstryr/zhp/archive/master.zip", "-O", "zhp.zip"});
-    try run(a, .{"unzip", "zhp.zip", "-d", dest_folder});
+    try run(a, .{"unzip", "zhp.zip", "-d", dest_folder, "-q"});
     try run(a, .{"rm", "zhp.zip"});
 }
 
