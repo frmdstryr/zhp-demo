@@ -9,7 +9,6 @@ const web = @import("zhp");
 pub const io_mode = .evented;
 pub const log_level = .info;
 
-
 const MainHandler = struct {
     pub fn get(self: *MainHandler, request: *web.Request,
                response: *web.Response) !void {
@@ -101,6 +100,9 @@ const TemplateHandler = struct {
 };
 
 const JsonHandler = struct {
+    // Static storage
+    var counter = std.atomic.Int(usize).init(0);
+
     pub fn get(self: *JsonHandler, request: *web.Request,
                response: *web.Response) !void {
         try response.headers.append("Content-Type", "application/json");
@@ -111,6 +113,24 @@ const JsonHandler = struct {
             try jw.objectField(h.key);
             try jw.emitString(h.value);
         }
+        try jw.objectField("Request-Count");
+        try jw.emitNumber(counter.fetchAdd(1));
+
+        try jw.endObject();
+    }
+
+};
+
+const ApiHandler = struct {
+    pub fn get(self: *ApiHandler, request: *web.Request,
+               response: *web.Response) !void {
+        try response.headers.append("Content-Type", "application/json");
+
+        var jw = std.json.writeStream(response.stream, 4);
+        try jw.beginObject();
+        const args = request.args.?;
+        try jw.objectField(args[0].?);
+        try jw.emitString(args[1].?);
         try jw.endObject();
     }
 
@@ -124,7 +144,6 @@ const ErrorTestHandler = struct {
     }
 
 };
-
 
 const FormHandler = struct {
     const template = @embedFile("templates/form.html");
@@ -182,14 +201,19 @@ const FormHandler = struct {
 pub const routes = [_]web.Route{
     web.Route.create("cover", "/", TemplateHandler),
     web.Route.create("hello", "/hello", MainHandler),
+    web.Route.create("api", "/api/([a-z]+)/(\\d+)/", ApiHandler),
     web.Route.create("json", "/json/", JsonHandler),
     web.Route.create("stream", "/stream/", StreamHandler),
     web.Route.create("stream-media", "/stream/live/", StreamHandler),
     web.Route.create("error", "/500/", ErrorTestHandler),
     web.Route.create("form", "/form/", FormHandler),
-    web.Route.static("static", "/static/"),
+    web.Route.static("static", "/static/", "src/static/"),
 };
 
+
+pub const middleware = [_]web.Middleware{
+    web.Middleware.create(web.middleware.LoggingMiddleware),
+};
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -197,9 +221,6 @@ pub fn main() !void {
     const allocator = &gpa.allocator;
 
     var app = web.Application.init(allocator, .{.debug=true});
-
-    var logger = web.middleware.LoggingMiddleware{};
-    try app.middleware.append(&logger.middleware);
 
     defer app.deinit();
     try app.listen("0.0.0.0", 5000);
