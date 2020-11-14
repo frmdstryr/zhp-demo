@@ -207,7 +207,7 @@ pub const routes = [_]web.Route{
     web.Route.create("stream-media", "/stream/live/", StreamHandler),
     web.Route.create("error", "/500/", ErrorTestHandler),
     web.Route.create("form", "/form/", FormHandler),
-    web.Route.static("static", "/static/", "src/static/"),
+    web.Route.static("static", "/static/", "static/"),
 };
 
 
